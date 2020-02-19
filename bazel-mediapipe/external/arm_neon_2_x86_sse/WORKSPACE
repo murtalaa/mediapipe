@@ -1,2 +1,0 @@
-# DO NOT EDIT: automatically generated WORKSPACE file for tf_http_archive rule
-workspace(name = "arm_neon_2_x86_sse")
