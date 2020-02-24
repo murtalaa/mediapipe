@@ -19,6 +19,7 @@ cc_library(
             "lib/libopencv_features2d.so",
             "lib/libopencv_optflow.so*",
             "lib/libopencv_optflow.so*",
+            "lib/libopencv_optflow.so*",
             "lib/libopencv_highgui.so",
             "lib/libopencv_imgcodecs.so",
             "lib/libopencv_imgproc.so",
