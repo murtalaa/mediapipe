@@ -87,12 +87,12 @@ cv::Vec3d LinearLSTriangulation(cv::Point3d u,  //homogenous image point (u,v,1)
 	return X;
 }
 
-void triangulate(::std::vector<cv::Point3d> v1_pts,
+void triangulate(::std::string calib_file, ::std::vector<cv::Point3d> v1_pts,
 		::std::vector<cv::Point3d> v2_pts) {
 
 	if (v1_pts.size() != v2_pts.size() || v1_pts.size() == 0)
 		return;
-	cv::FileStorage fs("mystereocalib_2.yml", cv::FileStorage::READ);
+	cv::FileStorage fs(calib_file, cv::FileStorage::READ);
 	cv::Mat P1, P2;
 	fs["P1"] >> P1;
 	fs["P2"] >> P2;
@@ -106,6 +106,10 @@ void triangulate(::std::vector<cv::Point3d> v1_pts,
 }
 
 ::mediapipe::Status RunMPPGraph(int index, int thr) {
+    char filename[20];
+	printf("Enter stereo calibration filename: ");
+	scanf("%19s", filename);
+
 	std::string calculator_graph_config_contents;
 	MP_RETURN_IF_ERROR(
 			mediapipe::file::GetContents(FLAGS_calculator_graph_config_file,
@@ -373,19 +377,18 @@ void triangulate(::std::vector<cv::Point3d> v1_pts,
 				j++;
 				LOG(INFO) << "Camera 1: " << "Palm: " << j;
 				for (int i = 0; i < loutput_landmarks.landmark_size(); ++i) {
-					;
 					const mediapipe::NormalizedLandmark &landmark =
 							loutput_landmarks.landmark(i);
 					cv::Point3d pt(landmark.x() * camera_frame.cols / 2,
 							landmark.y() * camera_frame.rows, 1);
 					v1_pts.push_back(pt);
-					LOG(INFO) << "x: " << landmark.x() * camera_frame.cols
-							<< " y: " << landmark.y() * camera_frame.rows
-							<< " z: " << landmark.z();
-					int x = landmark.x() * camera_frame.cols / 2;
-					int y = landmark.y() * camera_frame.rows;
-					cv::circle(routput_frame_mat, cv::Point(x, y), 5,
-							cv::Scalar(0, 255, 255), 3);
+					//LOG(INFO) << "x: " << landmark.x() * camera_frame.cols
+					//		<< " y: " << landmark.y() * camera_frame.rows
+					//		<< " z: " << landmark.z();
+					//int x = landmark.x() * camera_frame.cols / 2;
+					//int y = landmark.y() * camera_frame.rows;
+					//cv::circle(routput_frame_mat, cv::Point(x, y), 5,
+					//		cv::Scalar(0, 255, 255), 3);
 				}
 			}
 
@@ -399,24 +402,22 @@ void triangulate(::std::vector<cv::Point3d> v1_pts,
 							routput_landmarks.landmark(i);
 					cv::Point3d pt(landmark.x() * camera_frame.cols / 2,
 							landmark.y() * camera_frame.rows, 1);
-
 					v2_pts.push_back(pt);
-
-					LOG(INFO) << "Right: " << i << ": " << "x: "
-							<< landmark.x() * camera_frame.cols << " y: "
-							<< landmark.y() * camera_frame.rows << " z: "
-							<< landmark.z();
-					int x = landmark.x() * camera_frame.cols / 2;
-					int y = landmark.y() * camera_frame.rows;
-					cv::circle(loutput_frame_mat, cv::Point(x, y), 5,
-							cv::Scalar(0, 255, 255), 3);
+					//LOG(INFO) << "Right: " << i << ": " << "x: "
+					//		<< landmark.x() * camera_frame.cols << " y: "
+					//		<< landmark.y() * camera_frame.rows << " z: "
+					//		<< landmark.z();
+					//int x = landmark.x() * camera_frame.cols / 2;
+					//int y = landmark.y() * camera_frame.rows;
+					//cv::circle(loutput_frame_mat, cv::Point(x, y), 5,
+					//		cv::Scalar(0, 255, 255), 3);
 				}
 			}
 
 			cv::imshow(right, routput_frame_mat);
 			cv::imshow(left, loutput_frame_mat);
 
-			triangulate(v1_pts, v2_pts);
+			triangulate(filename, v1_pts, v2_pts);
 		}
 	}
 
