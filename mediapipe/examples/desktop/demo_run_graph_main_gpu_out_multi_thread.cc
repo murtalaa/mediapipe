@@ -65,22 +65,27 @@ cv::Vec3d LinearLSTriangulation(cv::Point3d u,  //homogenous image point (u,v,1)
 		cv::Point3d u1,      //homogenous image point in 2nd camera
 		cv::Mat P1       //camera 2 projection matrix
 		) {
-	double data1[12] = { u.x * P.at<double>(2, 0) - P.at<double>(0, 0), u.x
-			* P.at<double>(2, 1) - P.at<double>(0, 1), u.x * P.at<double>(2, 2)
-			- P.at<double>(0, 2), u.y * P.at<double>(2, 0) - P.at<double>(1, 0),
-			u.y * P.at<double>(2, 1) - P.at<double>(1, 1), u.y
-					* P.at<double>(2, 2) - P.at<double>(1, 2), u1.x
-					* P1.at<double>(2, 0) - P1.at<double>(0, 0), u1.x
-					* P1.at<double>(2, 1) - P1.at<double>(0, 1), u1.x
-					* P1.at<double>(2, 2) - P1.at<double>(0, 2), u1.y
-					* P1.at<double>(2, 0) - P1.at<double>(1, 0), u1.y
-					* P1.at<double>(2, 1) - P1.at<double>(1, 1), u1.y
-					* P1.at<double>(2, 2) - P1.at<double>(1, 2) };
+	double data1[12] = { 
+            u.x * P.at<double>(2, 0) - P.at<double>(0, 0), 
+            u.x	* P.at<double>(2, 1) - P.at<double>(0, 1), 
+            u.x * P.at<double>(2, 2) - P.at<double>(0, 2), 
+            u.y * P.at<double>(2, 0) - P.at<double>(1, 0),
+			u.y * P.at<double>(2, 1) - P.at<double>(1, 1), 
+            u.y	* P.at<double>(2, 2) - P.at<double>(1, 2), 
+            u1.x * P1.at<double>(2, 0) - P1.at<double>(0, 0), 
+            u1.x * P1.at<double>(2, 1) - P1.at<double>(0, 1), 
+            u1.x * P1.at<double>(2, 2) - P1.at<double>(0, 2), 
+            u1.y * P1.at<double>(2, 0) - P1.at<double>(1, 0), 
+            u1.y * P1.at<double>(2, 1) - P1.at<double>(1, 1), 
+            u1.y * P1.at<double>(2, 2) - P1.at<double>(1, 2) 
+            };
 	cv::Mat A = cv::Mat(4, 3, CV_64FC1, &data1);
-	double data2[4] = { -(u.x * P.at<double>(2, 3) - P.at<double>(0, 3)), -(u.y
-			* P.at<double>(2, 3) - P.at<double>(1, 3)), -(u1.x
-			* P1.at<double>(2, 3) - P1.at<double>(0, 3)), -(u1.y
-			* P1.at<double>(2, 3) - P1.at<double>(1, 3)) };
+	double data2[4] = { 
+            -(u.x  * P.at<double>(2, 3)  - P.at<double>(0, 3)), 
+            -(u.y  * P.at<double>(2, 3)  - P.at<double>(1, 3)), 
+            -(u1.x * P1.at<double>(2, 3) - P1.at<double>(0, 3)),
+            -(u1.y * P1.at<double>(2, 3) - P1.at<double>(1, 3)) 
+            };
 	cv::Mat B = cv::Mat(4, 1, CV_64FC1, &data2);
 	cv::Vec3d X;
 	cv::solve(A, B, X, cv::DECOMP_SVD);

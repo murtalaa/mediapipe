@@ -51,6 +51,12 @@ cc_library(
 )
 
 cc_library(
+    name = "boost",
+    visibility = ["//visibility:public"],
+    deps = ["@linux_boost//:boost"],
+)
+
+cc_library(
     name = "libffmpeg",
     visibility = ["//visibility:public"],
     deps = select({

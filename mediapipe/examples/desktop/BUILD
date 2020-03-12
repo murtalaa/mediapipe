@@ -139,11 +139,13 @@ cc_library(
     name = "demo_run_graph_main_gpu_out_thread",
     srcs = ["demo_run_graph_main_gpu_out_thread.cc"],
     deps = [
+        "//third_party:boost",
 		"//mediapipe/calculators/util:landmarks_to_render_data_calculator",
         "//mediapipe/framework:calculator_framework",
         "//mediapipe/framework/formats:image_frame",
         "//mediapipe/framework/formats:image_frame_opencv",
 		"//mediapipe/framework/formats:landmark_cc_proto",
+        "//mediapipe/framework/formats:coordinate_proto",
         "//mediapipe/framework/port:commandlineflags",
         "//mediapipe/framework/port:file_helpers",
         "//mediapipe/framework/port:opencv_highgui",
@@ -206,9 +208,11 @@ cc_library(
     name = "multi_vid_graph_main",
     srcs = ["multi_vid_graph_main.cc"],
     deps = [
+        "//third_party:boost",
         "//mediapipe/framework:calculator_framework",
         "//mediapipe/framework/formats:image_frame",
         "//mediapipe/framework/formats:image_frame_opencv",
+        "//mediapipe/framework/formats:coordinate_proto",
         "//mediapipe/framework/port:commandlineflags",
         "//mediapipe/framework/port:file_helpers",
         "//mediapipe/framework/port:opencv_highgui",
@@ -219,5 +223,11 @@ cc_library(
         "//mediapipe/gpu:gl_calculator_helper",
         "//mediapipe/gpu:gpu_buffer",
         "//mediapipe/gpu:gpu_shared_data_internal",
+        
+        
     ],
+    linkopts = ["-lboost_system"],
 )
+
+
+

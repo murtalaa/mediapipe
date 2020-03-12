@@ -54,7 +54,7 @@ node {
   input_stream: "TENSORS_GPU:image_tensor"
   output_stream: "TENSORS:output_tensors"
   node_options: {
-    [type.googleapis.com/mediapipe.TfLiteInferenceCalculatorOptions] {
+    [type.googleapis.com/mediapipe.TfLiteInferenceCalculatorOptions] { #hand_landmark_3d.pbtxt
       model_path: "mediapipe/models/hand_landmark.tflite"
       use_gpu: true
     }

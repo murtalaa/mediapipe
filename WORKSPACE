@@ -161,6 +161,14 @@ new_local_repository(
     path = "/usr/local"
 )
 
+# Boost Libs ##################
+new_local_repository(
+    name = "linux_boost",
+    build_file = "@//third_party:boost.BUILD",
+    path = "/usr",
+)
+##############################
+
 # Please run $ brew install opencv@3
 new_local_repository(
     name = "macos_opencv",
@@ -315,4 +323,8 @@ http_archive(
     strip_prefix = "google-toolbox-for-mac-2.2.1",
     build_file = "@//third_party:google_toolbox_for_mac.BUILD",
 )
+
+
+
+
 

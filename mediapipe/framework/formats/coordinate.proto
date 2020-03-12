@@ -1,0 +1,26 @@
+syntax = "proto2";
+
+package mediapipe;
+
+message Features {
+  required int32 time = 1;
+
+  message Landmark{
+    required double x = 1;
+    required double y = 2;
+    required double z = 3;
+  }
+  repeated Landmark landmarks = 2;
+}
+
+message Matrix {
+    required int32 row = 1;
+    required int32 col = 2;
+    optional int32 type = 3 [default = 6];
+    repeated double value = 4;
+    optional bool  valid = 5 [default = true]; 
+} 
+
+message Coordinates {
+    repeated Matrix transforms = 2;
+}

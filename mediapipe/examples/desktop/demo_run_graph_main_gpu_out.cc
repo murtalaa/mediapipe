@@ -77,7 +77,7 @@ DEFINE_string(output_video_path, "",
   if (load_video) {
     capture.open(FLAGS_input_video_path);
   } else {
-    capture.open(1);
+    capture.open(0);
   }
   RET_CHECK(capture.isOpened());
 
@@ -108,7 +108,7 @@ DEFINE_string(output_video_path, "",
     // Capture opencv camera or video frame.
     cv::Mat camera_frame_raw;
     capture >> camera_frame_raw;
-	camera_frame_raw = camera_frame_raw(cv::Rect(index, 0, 640, 480));
+	//camera_frame_raw = camera_frame_raw(cv::Rect(index, 0, 640, 480));
     if (camera_frame_raw.empty()) break;  // End of video.
     cv::Mat camera_frame;
     cv::cvtColor(camera_frame_raw, camera_frame, cv::COLOR_BGR2RGB);
@@ -193,18 +193,25 @@ DEFINE_string(output_video_path, "",
 		//rstringStream << kWindowName << "right" << i << ".jpg";
 
 		cv::String left  = lstringStream.str();
-      cv::imshow(left, output_frame_mat);
+      
       // Press any key to exit.
       const int pressed_key = cv::waitKey(5);
       if (pressed_key >= 0 && pressed_key != 255) grab_frames = false;
-	  for (int i = 0; i < output_landmarks.landmark_size(); ++i) {
+	  
+      for (int i = 0; i < output_landmarks.landmark_size(); ++i) {
 			  const mediapipe::NormalizedLandmark& landmark = output_landmarks.landmark(i);
 			  //LOG(INFO) << "Wrist " << j << "Point: " << i;
-			  LOG(INFO) << i << ": "<<"x: " << landmark.x() * camera_frame.cols 
-			  << " y: " << landmark.y() * camera_frame.rows << " z: " << landmark.z(); 
+			  LOG(INFO) << i << ": "<<"x: " << landmark.x()
+			  << " y: " << landmark.y()  << " z: " << landmark.z(); 
+				int x = landmark.x() * camera_frame.cols;
+				int y = landmark.y() * camera_frame.rows;
+				cv::circle(output_frame_mat, cv::Point(x, y), 5,
+						cv::Scalar(0, 255, 255), 3);
 			 // LOG(INFO)  
 			  //LOG(INFO) 
 	   }
+        cv::imshow(left, output_frame_mat);
+    
 
     }
   }

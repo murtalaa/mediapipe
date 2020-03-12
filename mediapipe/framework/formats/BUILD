@@ -31,6 +31,12 @@ proto_library(
     deps = ["//mediapipe/framework/formats:location_data_proto"],
 )
 
+mediapipe_cc_proto_library(
+    name = "coordinate_proto",
+    srcs = ["coordinate.proto"],
+    visibility = ["//visibility:public"],
+)
+
 proto_library(
     name = "classification_proto",
     srcs = ["classification.proto"],
