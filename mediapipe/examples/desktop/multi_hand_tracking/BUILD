@@ -66,6 +66,14 @@ cc_binary(
 )
 
 cc_binary(
+    name = "multi_hand_tracking_gpu_out_thread_udp",
+    deps = [
+        "//mediapipe/examples/desktop:demo_run_graph_main_gpu_out_multi_thread_udp",
+        "//mediapipe/graphs/hand_tracking:multi_hand_mobile_calculators",
+    ],
+)
+
+cc_binary(
     name = "multi_vid_hand_tracking_gpu",
     deps = [
         "//mediapipe/examples/desktop:multi_vid_graph_main",
