@@ -15,7 +15,6 @@
 // An example of sending OpenCV webcam frames into a MediaPipe graph.
 // This example requires a linux computer and a GPU with EGL support drivers.
 #include <cstdlib>
-
 #include "mediapipe/framework/calculator_framework.h"
 #include "mediapipe/framework/formats/image_frame.h"
 #include "mediapipe/framework/formats/image_frame_opencv.h"
@@ -31,11 +30,11 @@
 #include "mediapipe/gpu/gpu_buffer.h"
 #include "mediapipe/gpu/gpu_shared_data_internal.h"
 #include <thread>
+#include <future>
 #include <iostream>
 #include <boost/asio.hpp>
 #include <boost/array.hpp>
-#include <boost/bind.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
+
 #define UDP_PORT 7777
 
 std::vector<std::vector<cv::Point2f>> landMarks[2];
@@ -161,7 +160,7 @@ void listen_task(server *srv)
 /*----------------------------------------------------------------------*/
 
 /*------------------------------Coordinate--------------------------------*/
-void encode_matrix(mediapipe::Matrix *matrices, cv::Mat mat)
+void encode_matrix(mediapipe::Matrix * matrices, cv::Mat mat)
 {
     for (int i = 0; i < mat.rows; i++)
     {
@@ -175,7 +174,7 @@ void encode_matrix(mediapipe::Matrix *matrices, cv::Mat mat)
     matrices->set_col(mat.cols);
 }
 
-void write_coordinate(mediapipe::Coordinates *coord, cv::Mat mat)
+void write_coordinate(mediapipe::Coordinates * coord, cv::Mat mat)
 {
     mediapipe::Matrix *matrices = coord->add_transforms();
     {
@@ -236,7 +235,8 @@ void populate(mediapipe::Coordinates *coord)
     }
 }
 
-void populate_v2(mediapipe::Coordinates *coord, std::vector<cv::Mat> system)
+void populate_v2(mediapipe::Coordinates *coord, 
+                 ::std::vector<cv::Mat> system)
 {
     for (int i = 0; i < system.size(); i++)
     {
@@ -246,14 +246,14 @@ void populate_v2(mediapipe::Coordinates *coord, std::vector<cv::Mat> system)
 /*-----------------------------------------------------------------*/
 
 /*-----------------------------Generate Transform-------------------------*/
-void genCoordinate_v2(int ref, int start, std::vector<cv::Mat> *system, ::std::vector<cv::Point3d> handCoord3d)
+void genCoordinate_v2(int ref, int start, std::vector<cv::Mat> * system, ::std::vector < cv::Point3d > handCoord3d)
 {
     std::ostringstream stringStream;
     cv::Point3d pt_ref, pt_start, pt_next;
 
     pt_ref = handCoord3d[ref];
     pt_start = handCoord3d[start];
-    pt_next = handCoord3d[start + 1];
+    pt_next = handCoord3d[start+1];
 
     cv::Point3d y = pt_start - pt_ref;
     cv::Point3d y_ = pt_next - pt_start;
@@ -267,40 +267,50 @@ void genCoordinate_v2(int ref, int start, std::vector<cv::Mat> *system, ::std::v
     cv::Point3d x_ = y_.cross(z);
     x_ = x_ / norm(x_);
 
-    cv::Mat coord = cv::Mat::zeros(3, 3, CV_64F);
-    cv::Mat coord_ = cv::Mat::zeros(3, 3, CV_64F);
+    cv::Mat coord  = cv::Mat::zeros(4, 4, CV_64F);
+    cv::Mat coord_ = cv::Mat::zeros(4, 4, CV_64F);
     {
-        coord.at<double>(0, 0) = x.x;
-        coord_.at<double>(0, 0) = x_.x;
-        coord.at<double>(1, 0) = x.y;
-        coord_.at<double>(1, 0) = x_.y;
-        coord.at<double>(2, 0) = x.z;
-        coord_.at<double>(2, 0) = x_.z;
+        coord.at<double>(0, 0) = x.x; coord_.at<double>(0, 0) = x_.x;
+        coord.at<double>(1, 0) = x.y; coord_.at<double>(1, 0) = x_.y;
+        coord.at<double>(2, 0) = x.z; coord_.at<double>(2, 0) = x_.z;
 
-        coord.at<double>(0, 1) = y.x;
-        coord_.at<double>(0, 1) = y_.x;
-        coord.at<double>(1, 1) = y.y;
-        coord_.at<double>(1, 1) = y_.y;
-        coord.at<double>(2, 1) = y.z;
-        coord_.at<double>(2, 1) = y_.z;
+        coord.at<double>(0, 1) = y.x; coord_.at<double>(0, 1) = y_.x;
+        coord.at<double>(1, 1) = y.y; coord_.at<double>(1, 1) = y_.y;
+        coord.at<double>(2, 1) = y.z; coord_.at<double>(2, 1) = y_.z;
 
-        coord.at<double>(0, 2) = z.x;
-        coord_.at<double>(0, 2) = z.x;
-        coord.at<double>(1, 2) = z.y;
-        coord_.at<double>(1, 2) = z.y;
-        coord.at<double>(2, 2) = z.z;
-        coord_.at<double>(2, 2) = z.z;
+        coord.at<double>(0, 2) = z.x; coord_.at<double>(0, 2) = z.x;
+        coord.at<double>(1, 2) = z.y; coord_.at<double>(1, 2) = z.y;
+        coord.at<double>(2, 2) = z.z; coord_.at<double>(2, 2) = z.z;
     }
+
+    cv::Point3d trans_ref = handCoord3d[ref] - handCoord3d[0];
+    cv::Point3d trans_start = handCoord3d[start] - handCoord3d[0];
+    {
+        coord.at<double>(0, 3) = trans_ref.x; coord_.at<double>(0, 3) = trans_start.x;
+        coord.at<double>(1, 3) = trans_ref.y; coord_.at<double>(1, 3) = trans_start.y;
+        coord.at<double>(2, 3) = trans_ref.z; coord_.at<double>(2, 3) = trans_start.z;
+        coord.at<double>(3, 3) = 1.0; coord_.at<double>(3, 3) = 1.0;
+    }
+
     system->push_back(coord);
     system->push_back(coord_);
 
     if ((start + 1) % 4 == 0)
     {
-        system->push_back(coord_); // Tip of the finger
+        cv::Mat coord_end = (coord_.clone());
+        cv::Point3d trans_next = handCoord3d[start + 1] - handCoord3d[0];
+        {
+            coord_end.at<double>(0, 3) = trans_next.x;
+            coord_end.at<double>(1, 3) = trans_next.y;
+            coord_end.at<double>(2, 3) = trans_next.z;
+        }
+        system->push_back(coord_end); // Tip of the finger
     }
 }
 
-void genCoordSys_v2(::std::vector<cv::Point3d> handCoord3d, std::vector<cv::Mat> *system)
+
+void genCoordSys_v2(::std::vector<cv::Point3d> handCoord3d, 
+                    ::std::vector<cv::Mat> *system)
 {
     /*
 Landmark Points range from 0 to 20
@@ -321,9 +331,9 @@ Landmark Points range from 0 to 20
         start = start + 2;
     }
     system->erase(system->begin() + 00);
-    system->erase(system->begin() + 05);
-    system->erase(system->begin() + 15);
-    system->erase(system->begin() + 20);
+    system->erase(system->begin() + 04);
+    system->erase(system->begin() + 13);
+    system->erase(system->begin() + 17);
 }
 /*------------------------------------------------------------------------*/
 
@@ -362,10 +372,11 @@ cv::Vec3d LinearLSTriangulation(cv::Point3d u,  //homogenous image point (u,v,1)
     return X;
 }
 
-void triangulate(server *srv, ::std::string calib_file, ::std::vector<cv::Point3d> v1_pts,
+void triangulate(server *srv, 
+                 ::std::string calib_file, 
+                 ::std::vector<cv::Point3d> v1_pts,
                  ::std::vector<cv::Point3d> v2_pts)
 {
-
     if (v1_pts.size() != v2_pts.size() || v1_pts.size() == 0)
         return;
     cv::FileStorage fs(calib_file, cv::FileStorage::READ);
@@ -383,6 +394,9 @@ void triangulate(server *srv, ::std::string calib_file, ::std::vector<cv::Point3
     }
     mediapipe::Coordinates features;
     genCoordSys_v2(handCoord3d, &system);
+    cv::Mat ref = cv::Mat(system[8]);
+    system.erase(system.begin()+8);
+    system.insert(system.begin(), ref);
     populate_v2(&features, system);
     srv->send_msg(&features);
 }
@@ -622,7 +636,6 @@ void triangulate(server *srv, ::std::string calib_file, ::std::vector<cv::Point3
         }
         else
         {
-
             cv::imshow(right, routput_frame_mat);
             cv::imshow(left, loutput_frame_mat);
 
@@ -634,7 +647,6 @@ void triangulate(server *srv, ::std::string calib_file, ::std::vector<cv::Point3
             for (int i = 0; i < loutput_landmarks.landmark_size(); ++i)
             {
                 const mediapipe::NormalizedLandmark &landmark = loutput_landmarks.landmark(i);
-                //LOG(INFO) << "Wrist " << j << "Point: " << i;
                 LOG(INFO) << "Left: " << i << ": "
                           << "x: " << landmark.x() * camera_frame.cols
                           << " y: " << landmark.y() * camera_frame.rows << " z: " << landmark.z();
@@ -653,7 +665,6 @@ void triangulate(server *srv, ::std::string calib_file, ::std::vector<cv::Point3
                                landmark.y() * camera_frame.rows, 1);
                 v2_pts.push_back(pt);
             }
-
             triangulate(srv, filename, v1_pts, v2_pts);
         }
     }
@@ -681,10 +692,15 @@ int main(int argc, char **argv)
 
         google::InitGoogleLogging(argv[0]);
         gflags::ParseCommandLineFlags(&argc, &argv, true);
-        std::thread fun_2(listen_task, &srv);
-        ::mediapipe::Status run_status = RunMPPGraph(&srv);
-        fun_2.join();
+        //std::thread fun_2(listen_task, &srv);
+        //std::thread fun_1(RunMPPGraph, &srv);
+        //::mediapipe::Status run_status = RunMPPGraph(&srv);
+        //fun_2.join();
+        //fun_1.join();
+        auto t1 = std::async(listen_task, &srv);
+        auto t2 = std::async(RunMPPGraph, &srv);
 
+        ::mediapipe::Status run_status = t2.get();
         bool s = run_status.ok();
         if (!s)
         {

@@ -1,6 +1,6 @@
 # Boost Rules
 # Description:
-#   OpenCV libraries for video/image processing on Linux
+#   Boost libraries for UDP socket programming on Linux
 
 licenses(["notice"])  # BSD license
 

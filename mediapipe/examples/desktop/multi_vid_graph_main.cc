@@ -249,6 +249,9 @@ void print_a()
 }
 
 ::mediapipe::Status run_multiple(int cam, server * srv){
+    char filename[20];
+    printf("Enter stereo calibration filename: ");
+    scanf("%19s", filename);
   std::string calculator_graph_config_contents;
   MP_RETURN_IF_ERROR(mediapipe::file::GetContents(
       FLAGS_calculator_graph_config_file, &calculator_graph_config_contents));
