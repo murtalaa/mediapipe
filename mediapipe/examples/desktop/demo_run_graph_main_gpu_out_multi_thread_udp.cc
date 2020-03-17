@@ -33,6 +33,7 @@
 #include <thread>
 #include <future>
 #include <iostream>
+#include <chrono>
 #include <boost/asio.hpp>
 #include <boost/array.hpp>
 
@@ -403,6 +404,7 @@ void triangulate(server *srv,
 /*------------------------------------------------------------------------*/
 
 ::mediapipe::Status RunMPPGraph(server *srv) {
+    std::this_thread::sleep_for(std::chrono::seconds(1));
     char filename[20];
 	printf("Enter stereo calibration filename: ");
 	scanf("%19s", filename);

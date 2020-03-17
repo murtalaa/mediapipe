@@ -16,15 +16,34 @@
 #include "mediapipe/gpu/gpu_shared_data_internal.h"
 #include <thread>
 #include <iostream>
+#include <chrono>
 #include <boost/asio.hpp>
 #include <boost/array.hpp>
 #include <boost/bind.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include "server.h"
 #define UDP_PORT 7777
 
 using boost::asio::ip::udp;
+using namespace std;
 
-void print(const boost::system::error_code& /*e*/,
+
+const char kInputStream[] = "input_video";
+const char kOutputStream[] = "output_video";
+const char kOutputStream_[] = "output_video";
+const char kWindowName[] = "MediaPipe";
+
+DEFINE_string(
+    calculator_graph_config_file, "",
+    "Name of file containing text format CalculatorGraphConfig proto.");
+DEFINE_string(input_video_path, "",
+              "Full path of video to load. "
+              "If not provided, attempt to use a webcam.");
+DEFINE_string(output_video_path, "",
+              "Full path of where to save result (.mp4 only). "
+              "If not provided, show result in a window.");
+
+void print(const boost::system::error_code& ,
     boost::asio::deadline_timer* t, int* count)
 {
       if (*count < 10)
@@ -50,122 +69,10 @@ void test()
   std::cout << "Final count is " << count << "\n";
 }
 
-using namespace std;
-using namespace cv;
+/*---------------------------Server-----------------------------*/
+/*--------------------------------------------------------------*/
 
-const char kInputStream[] = "input_video";
-const char kOutputStream[] = "output_video";
-const char kOutputStream_[] = "output_video";
-const char kWindowName[] = "MediaPipe";
-
-DEFINE_string(
-    calculator_graph_config_file, "",
-    "Name of file containing text format CalculatorGraphConfig proto.");
-DEFINE_string(input_video_path, "",
-              "Full path of video to load. "
-              "If not provided, attempt to use a webcam.");
-DEFINE_string(output_video_path, "",
-              "Full path of where to save result (.mp4 only). "
-              "If not provided, show result in a window.");
-
-
-/*---------------------------Server-------------------------------*/
-class server
-{
-public:
-    server(boost::asio::io_service &io, udp::endpoint &endpoint)
-        : socket(io, endpoint)
-    {
-        std::cout << "Server with IP: " << endpoint << " created \n";
-    }
-
-    ~server()
-    {
-        std::cout << "Server Closed "
-                  << "\n";
-    }
-
-    void listen(){
-        std::cout << "Waiting for Connection\n";
-        do{
-            std::cout << "Remote Endpoint (Before): " << remote_endpoint.port() << "\n";
-            recv_msg();
-            std::cout << "Remote Endpoint (After): " << remote_endpoint.port() << "\n";
-            
-        }
-        while(remote_endpoint.port() == 0);
-
-        connected = true;
-    }
-
-    void handler(const boost::system::error_code &error, std::size_t bytes_transferred)
-    {
-        std::cout << "ulala" << std::endl;
-        std::cout << "Received: '" << std::string(recv_buf.begin(), recv_buf.begin() + bytes_transferred) << "'\n";
-
-        if (!error || error == boost::asio::error::message_size)
-            recv_msg();
-    }
-
-    bool recv_msg()
-    {
-        try
-        {
-            boost::system::error_code error;
-            
-            socket.receive_from(boost::asio::buffer(recv_buf),
-                                remote_endpoint, 0, error);
-            //socket.async_receive_from(boost::asio::buffer(recv_buf), remote_endpoint,
-            //                          boost::bind(&server::handler, this, error,
-            //                                      boost::asio::placeholders::bytes_transferred));
-            if (error && error != boost::asio::error::message_size)
-            {
-                throw boost::system::system_error(error);
-                connected = false;
-                return false;
-            }
-            return true;
-        }
-        catch (std::exception &e)
-        {
-            std::cerr << e.what() << std::endl;
-            return false;
-        }
-    }
-
-    bool send_msg(mediapipe::Coordinates *features)
-    {
-        try
-        {
-            if (connected){
-                boost::system::error_code ignored_error;
-                boost::asio::streambuf b;
-                std::ostream os(&b);
-                features->SerializeToOstream(&os);
-                size_t len = socket.send_to(b.data(),
-                                            remote_endpoint, 0, ignored_error);
-                std::cout << "Sending Matrix of length (" << len << ")" << std::endl;
-                return true;
-            }
-            
-        }
-        catch (std::exception &e)
-        {
-            std::cerr << e.what() << std::endl;
-            connected = false;
-            return false;
-        }
-        std::cout << "No client connected\n";
-        return false;
-    }
-
-private:
-    bool connected = false;
-    udp::socket socket;
-    boost::array<char, 1> recv_buf;
-    udp::endpoint remote_endpoint;
-};
-/*-------------------------Coordinate-----------------------------*/
+/*-------------------------Coordinate---------------------------*/
 void encode_matrix(mediapipe::Matrix *matrices, cv::Mat *mat)
 {
     for (int i = 0; i < mat->rows; i++)
@@ -242,13 +149,14 @@ void populate(mediapipe::Coordinates *coord)
 
 void print_a()
 {
-    boost::asio::io_service io;
+  boost::asio::io_service io;
   boost::asio::deadline_timer t(io, boost::posix_time::seconds(5));
   t.wait();
   std::cout << "Hello, world!" << std::endl;
 }
 
 ::mediapipe::Status run_multiple(int cam, server * srv){
+    std::this_thread::sleep_for(std::chrono::seconds(1));
     char filename[20];
     printf("Enter stereo calibration filename: ");
     scanf("%19s", filename);
@@ -408,11 +316,12 @@ int main(int argc, char** argv) {
 
   google::InitGoogleLogging(argv[0]);
   gflags::ParseCommandLineFlags(&argc, &argv, true);
-  std::thread fun_2(listen_task,&srv);
-  std::thread fun_1(run_multiple,0, &srv);
+  std::thread fun_1(listen_task,&srv);
+  std::thread fun_2(run_multiple,0, &srv);
   //thread fun_2(run_multiple,2);
-  fun_1.join();
+  
   fun_2.join();
+  fun_1.join();
   /*::mediapipe::Status run_status = run_multiple(1,"MediaPipe");
   ::mediapipe::Status run_status_1 = run_multiple(0, "MediaPipe 2");//, "MediaPipe_1", "output_video_1");
   //RunMPPGraph();

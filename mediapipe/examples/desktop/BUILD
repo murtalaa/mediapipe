@@ -229,9 +229,23 @@ cc_library(
 )
 
 cc_library(
+    name = "server",
+    srcs = ["server.cpp"],
+    hdrs = ["server.h"],
+    deps = [
+        "//mediapipe/framework/port:opencv_highgui",
+        "//mediapipe/framework/port:opencv_imgproc",
+        "//mediapipe/framework/port:opencv_video",
+        "//mediapipe/framework/formats:coordinate_proto",
+        "//third_party:boost",
+           ],
+)
+
+cc_library(
     name = "multi_vid_graph_main",
     srcs = ["multi_vid_graph_main.cc"],
     deps = [
+        ":server",
         "//third_party:boost",
         "//mediapipe/framework:calculator_framework",
         "//mediapipe/framework/formats:image_frame",
@@ -247,8 +261,6 @@ cc_library(
         "//mediapipe/gpu:gl_calculator_helper",
         "//mediapipe/gpu:gpu_buffer",
         "//mediapipe/gpu:gpu_shared_data_internal",
-        
-        
     ],
 )
 
