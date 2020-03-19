@@ -143,7 +143,7 @@ public:
             connected = false;
             return false;
         }
-        std::cout << "No client connected\n";
+        std::cout << "Client disconnected\n";
         return false;
     }
 
@@ -407,7 +407,9 @@ void triangulate(server *srv,
 /**/
 /**/
 /**/
-::mediapipe::Status RunMPPGraph(server *srv)
+::mediapipe::Status RunMPPGraph(server *srv, 
+								std::promise<::mediapipe::Status> && pr, 
+								std::promise<::mediapipe::Status> && pl)
 {
     std::this_thread::sleep_for(std::chrono::seconds(1));
     char filename[20];
@@ -680,8 +682,8 @@ void triangulate(server *srv,
 
     ::mediapipe::Status r = rgraph.WaitUntilDone();
     ::mediapipe::Status l = lgraph.WaitUntilDone();
-
-    bool status = r.ok() && l.ok();
+	pr.set_value(r);
+	pl.set_value(l);
     return lgraph.WaitUntilDone();
 }
 
@@ -692,26 +694,31 @@ int main(int argc, char **argv)
         boost::asio::io_service io_service;
         udp::endpoint endpoint = udp::endpoint(udp::v4(), UDP_PORT);
         server srv(io_service, endpoint);
-
         google::InitGoogleLogging(argv[0]);
         gflags::ParseCommandLineFlags(&argc, &argv, true);
-        //std::thread fun_2(listen_task, &srv);
-        //std::thread fun_1(RunMPPGraph, &srv);
-        //::mediapipe::Status run_status = RunMPPGraph(&srv);
-        //fun_2.join();
-        //fun_1.join();
-        auto t1 = std::async(listen_task, &srv);
-        auto t2 = std::async(RunMPPGraph, &srv);
+		std::promise<::mediapipe::Status> l, r;
+		auto f = r.get_future();
+		auto g = l.get_future();
+        std::thread fun_2(listen_task, &srv);
+        std::thread fun_1(RunMPPGraph, &srv, std::move(r), std::move(l));
+        fun_2.join();       
+		std::cout << "Listen Task Over \n";      		
+		fun_1.join();
+		std::cout << "Graph Task Over \n";
+        ::mediapipe::Status rrun_status = f.get();
+        ::mediapipe::Status lrun_status = g.get();
 
-        ::mediapipe::Status run_status = t2.get();
-        bool s = run_status.ok();
+		std::cout << "Thread Output Recieved\n";
+        bool s = rrun_status.ok() && lrun_status.ok();
         if (!s)
         {
-            LOG(ERROR) << "Failed to run the graph: " << run_status.message();
+		std::cout << "EXITING\n";
+            LOG(ERROR) << "Failed to run the graph: \n";
             return EXIT_FAILURE;
         }
         else
         {
+					std::cout << "SUCCESS\n";
             LOG(INFO) << "Success!";
         }
     }

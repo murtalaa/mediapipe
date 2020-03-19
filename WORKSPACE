@@ -165,7 +165,7 @@ new_local_repository(
 new_local_repository(
     name = "linux_boost",
     build_file = "@//third_party:boost.BUILD",
-    path = "/usr",
+    path = "/usr/local",
 )
 ##############################
 
