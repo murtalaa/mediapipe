@@ -226,7 +226,7 @@ REGISTER_CALCULATOR(LandmarksToRenderDataCalculator);
       landmark_data->set_y(landmark.y());
 
 
-
+/*
       const unsigned char lmIndex = &landmark - &landmarks.landmark(0);
       auto* landmarks_text_render = render_data->add_render_annotations();
       auto* landmark_text =
@@ -249,7 +249,7 @@ REGISTER_CALCULATOR(LandmarksToRenderDataCalculator);
       landmarks_text_render->mutable_color()->set_g(0);
       landmarks_text_render->mutable_color()-> set_b(255);
       landmarks_text_render->set_scene_tag(kLandmarkLabel);
-
+*/
       /*if((&landmark - &landmarks[0])==0){
         std::cout  << "X:" << std::to_string(landmark.x()) << " - " << landmark_data->x() << "\n";
       }*/

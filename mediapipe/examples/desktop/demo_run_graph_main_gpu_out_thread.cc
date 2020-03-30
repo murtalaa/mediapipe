@@ -32,6 +32,7 @@
 #include <thread>
 #include <future>
 #include <iostream>
+#include <time.h>
 #include <chrono>
 #include <boost/asio.hpp>
 #include <boost/array.hpp>
@@ -163,14 +164,16 @@ void listen_task(server *srv)
 /*------------------------------Coordinate--------------------------------*/
 void encode_matrix(mediapipe::Matrix * matrices, cv::Mat mat)
 {
+	bool valid = false;
     for (int i = 0; i < mat.rows; i++)
     {
         for (int j = 0; j < mat.cols; j++)
         {
             matrices->add_value(mat.at<double>(i, j));
+			valid = !(mat.at<double>(i, j) != mat.at<double>(i, j));
         }
     }
-    matrices->set_valid(true);
+    matrices->set_valid(valid);
     matrices->set_row(mat.rows);
     matrices->set_col(mat.cols);
 }
@@ -443,7 +446,7 @@ void triangulate(server *srv,
     lgpu_helper.InitializeForTest(lgraph.GetGpuResources().get());
 
     LOG(INFO) << "Initialize the camera or load the video.";
-    cv::VideoCapture capture;
+    cv::VideoCapture capture, cap;
     const bool load_video = !FLAGS_input_video_path.empty();
     if (load_video)
     {
@@ -451,7 +454,7 @@ void triangulate(server *srv,
     }
     else
     {
-        capture.open(0);
+        capture.open(1); cap.open(2);
     }
     RET_CHECK(capture.isOpened());
 
@@ -473,6 +476,7 @@ void triangulate(server *srv,
         capture.set(cv::CAP_PROP_FRAME_WIDTH, 640);
         capture.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
         capture.set(cv::CAP_PROP_FPS, 30);
+		cap.set(cv::CAP_PROP_FPS, 30);
 #endif
     }
 
@@ -495,19 +499,22 @@ void triangulate(server *srv,
 
     LOG(INFO) << "Start grabbing and processing frames.";
     bool grab_frames = true;
+	std::time_t start, end;
     while (grab_frames)
     {
-        
+        time(&start);
         // Capture opencv camera or video frame.
-        cv::Mat camera_frame_raw;
+        cv::Mat camera_frame_raw, camera_frame_raw_1;
         capture >> camera_frame_raw;
-        if (camera_frame_raw.empty())
+		cap >> camera_frame_raw_1;
+        if (camera_frame_raw.empty() || camera_frame_raw_1.empty())
             break; // End of video.
         cv::Mat camera_frame, rcamera_frame, lcamera_frame;
-        cv::cvtColor(camera_frame_raw, camera_frame, cv::COLOR_BGR2RGB);
+        cv::cvtColor(camera_frame_raw, rcamera_frame, cv::COLOR_BGR2RGB);
+		cv::cvtColor(camera_frame_raw_1, lcamera_frame, cv::COLOR_BGR2RGB);
 
-        rcamera_frame = camera_frame(cv::Rect(0, 0, 640, 480));
-        lcamera_frame = camera_frame(cv::Rect(640, 0, 640, 480));
+        //rcamera_frame = camera_frame(cv::Rect(0, 0, 640, 480));
+        //lcamera_frame = camera_frame(cv::Rect(640, 0, 640, 480));
 
         if (!load_video)
         {
@@ -626,7 +633,8 @@ void triangulate(server *srv,
 
         cv::Mat loutput_frame_mat = mediapipe::formats::MatView(loutput_frame.get());
         cv::cvtColor(loutput_frame_mat, loutput_frame_mat, cv::COLOR_RGB2BGR);
-
+		
+		std::time(&end);
         if (save_video)
         {
             if (!writer.isOpened())
@@ -641,6 +649,11 @@ void triangulate(server *srv,
         }
         else
         {
+		    double seconds = difftime (end, start);
+		    //cout << "Time taken : " << seconds << " seconds" << endl;
+		    double fps  = 2 / seconds;
+			std::cout << "Capture 1 Frame Rate : " << capture.get(cv::CAP_PROP_FPS) << " fps" << std::endl;
+			std::cout << "Capture 2 Frame Rate : " << cap.get(cv::CAP_PROP_FPS) << " fps" << std::endl;
             cv::imshow(right, routput_frame_mat);
             cv::imshow(left, loutput_frame_mat);
 

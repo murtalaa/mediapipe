@@ -163,14 +163,16 @@ void listen_task(server *srv)
 /*------------------------------Coordinate--------------------------------*/
 void encode_matrix(mediapipe::Matrix * matrices, cv::Mat mat)
 {
+	bool valid = false;
     for (int i = 0; i < mat.rows; i++)
     {
         for (int j = 0; j < mat.cols; j++)
         {
             matrices->add_value(mat.at<double>(i, j));
+			valid = !(mat.at<double>(i, j) != mat.at<double>(i, j));
         }
     }
-    matrices->set_valid(true);
+    matrices->set_valid(valid);
     matrices->set_row(mat.rows);
     matrices->set_col(mat.cols);
 }
